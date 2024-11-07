@@ -1,5 +1,5 @@
 [workspace]
-members=["adder","compiler"]
+members = ["add_one", "adder", "compiler"]
 
 [package]
 name = "somnams-crates"
