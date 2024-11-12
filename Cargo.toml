@@ -1,9 +1,3 @@
 [workspace]
-members = ["add_one", "adder", "compiler"]
 
-[package]
-name = "somnams-crates"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
+members = ["adder", "add_one", "compiler"]
