@@ -1,7 +1,7 @@
 pub struct Report<'a> {
     line: u32,
     cur_char: &'a str,
-    msg: &'a str
+    msg: &'a str,
 }
 
 impl<'a> Report<'a> {

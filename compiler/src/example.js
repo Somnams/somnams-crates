@@ -1,1 +1,3 @@
-console.log(1 + 2);
+// invalid code
+({})
+++

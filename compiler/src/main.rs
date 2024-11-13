@@ -2,7 +2,7 @@
 // * Intermediate representations =>optimization => code gen => virtual machine
 // * => runtime
 
-mod  ast;
+mod ast;
 
 use std::{env, fs, io::stdin};
 
@@ -13,7 +13,6 @@ enum FileType {
     Other,
 }
 
-
 fn file_type_check(file_path: &str) -> FileType {
     if file_path.ends_with(".js") {
         return FileType::JavaScript;
@@ -22,8 +21,9 @@ fn file_type_check(file_path: &str) -> FileType {
 }
 
 fn run(source: &str) {
-    let scanner = Scanner::new(source);
-    let tokens = Scanner::scan_tokens();
+    let mut scanner = Scanner::new(source);
+    let tokens = scanner.scan_tokens();
+    println!("{:#?}", tokens);
 }
 
 fn run_files(file_path: &str) {
@@ -32,7 +32,8 @@ fn run_files(file_path: &str) {
         FileType::JavaScript => {
             let f = fs::read_to_string(file_path).expect("Cannot read this file.");
             println!("{f}");
-        },
+            run(&f);
+        }
         FileType::Other => {
             println!("Sorry, it only supports JavaScript now.");
         }
@@ -47,8 +48,7 @@ fn run_prompt() {
         if stdin().read_line(&mut input).expect("Failed to read line.") == 0 {
             break;
         };
-        // TODO
-        // run lines
+        run(&input);
         println!("message received: {}", input);
     }
 }
