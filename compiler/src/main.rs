@@ -60,7 +60,6 @@ fn main() {
     } else if args.len() == 2 {
         run_files(&args[1]);
     } else {
-        // Report::new(0, "cur_char", "test error");
         println!("Usage: cargo run -- [script]");
     }
 }

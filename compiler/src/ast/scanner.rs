@@ -22,9 +22,12 @@ impl<'a> Scanner<'a> {
     }
     pub fn scan_tokens(&mut self) -> Vec<Token> {
         while !(self.is_at_end()) {
-            println!("????");
             self.start = self.cur_pos;
-            self.consume_punctuation();
+            if self.is_string(None) {
+                self.consume_string();
+            } else {
+                self.consume_punctuation();
+            }
         }
         let eof_char = '\0';
         self.tokens.push(Token::new(
@@ -65,35 +68,67 @@ impl<'a> Scanner<'a> {
         self.consume().unwrap() == expected
     }
 
+    fn is_string(&mut self, c: Option<char>) -> bool {
+        let cc = if c.is_some() {
+            c.unwrap()
+        } else {
+            self.current_char().unwrap()
+        };
+        cc == '"'
+    }
+
+    fn consume_string(&mut self) {
+        // * skip first \"\
+        self.consume();
+        // println!("what is cur{:?}", self.peek());
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() == '\n' {
+                self.line += 1;
+            }
+            self.consume();
+        }
+        if self.is_at_end() {
+            Report::new(self.line, "", "Unterminated string.");
+        }
+        self.consume();
+        println!(
+            "source = {:?}, start = {:?}, cur = {:?}",
+            self.source, self.start, self.cur_pos
+        );
+        let literal = self.source[self.start + 1..self.cur_pos - 1].to_string();
+        self.add_token(TokenKind::String, Some(literal));
+    }
+
     fn consume_punctuation(&mut self) {
         let c = self.consume().unwrap();
+        let mut kind = TokenKind::Bad;
         match c {
             '(' => {
-                self.add_token(TokenKind::LeftParen);
+                kind = TokenKind::LeftParen;
             }
             ')' => {
-                self.add_token(TokenKind::RightParen);
+                kind = TokenKind::RightParen;
             }
             '{' => {
-                self.add_token(TokenKind::LeftBrace);
+                kind = TokenKind::LeftBrace;
             }
             '}' => {
-                self.add_token(TokenKind::RightBrace);
+                kind = TokenKind::RightBrace;
             }
             ',' => {
-                self.add_token(TokenKind::Comma);
+                kind = TokenKind::Comma;
             }
             '.' => {
-                self.add_token(TokenKind::Dot);
+                kind = TokenKind::Dot;
             }
             '-' => {
-                self.add_token(TokenKind::Minus);
+                kind = TokenKind::Minus;
             }
             '+' => {
-                self.add_token(TokenKind::Plus);
+                kind = TokenKind::Plus;
             }
             '*' => {
-                self.add_token(TokenKind::Star);
+                kind = TokenKind::Star;
             }
             '/' => {
                 if self.is_match('/') {
@@ -101,57 +136,63 @@ impl<'a> Scanner<'a> {
                         self.consume();
                     }
                 } else {
-                    self.add_token(TokenKind::Slash);
+                    kind = TokenKind::Slash;
                 }
             }
             ';' => {
-                self.add_token(TokenKind::Semicolon);
+                kind = TokenKind::Semicolon;
             }
             '!' => {
-                let k = if self.is_match('=') {
+                kind = if self.is_match('=') {
                     TokenKind::BangEqual
                 } else {
                     TokenKind::Bang
                 };
-                self.add_token(k);
             }
             '=' => {
-                let k = if self.is_match('=') {
+                kind = if self.is_match('=') {
                     TokenKind::EqualEqual
                 } else {
                     TokenKind::Equal
                 };
-                self.add_token(k);
             }
             '<' => {
-                let k = if self.is_match('=') {
+                kind = if self.is_match('=') {
                     TokenKind::LessEqual
                 } else {
                     TokenKind::Less
                 };
-                self.add_token(k);
             }
             '>' => {
-                let k = if self.is_match('=') {
+                kind = if self.is_match('=') {
                     TokenKind::GreaterEqual
                 } else {
                     TokenKind::Greater
                 };
-                self.add_token(k);
             }
-            '\r' | ' ' | '\t' => (),
+            '\r' | ' ' | '\t' => {
+                kind = TokenKind::Whitespace;
+            }
             '\n' => {
                 self.line += 1;
+                return;
             }
             _ => {
-                self.add_token(TokenKind::Semicolon);
-                Report::new(self.line, "", "Unexpected character.");
+                Report::new(self.line, &c.to_string(), "Unexpected character.");
             }
         }
+        self.add_token(kind, None);
     }
 
-    fn add_token(&mut self, kind: TokenKind) {
-        let literal = self.source[self.start..self.cur_pos].to_string();
+    /**
+     * literal_props => default value by set Option<>, a bit weird
+     */
+    fn add_token(&mut self, kind: TokenKind, literal_props: Option<String>) {
+        let literal = if literal_props.is_some() {
+            literal_props.unwrap()
+        } else {
+            self.source[self.start..self.cur_pos].to_string()
+        };
         let token = Token::new(
             kind,
             self.line,
@@ -201,6 +242,7 @@ pub enum TokenKind {
     Console,
     Return,
     Var,
+    Whitespace,
     Eof,
 }
 
