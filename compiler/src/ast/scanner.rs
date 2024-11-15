@@ -1,6 +1,5 @@
 use super::report::Report;
 
-// TODO
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Scanner<'a> {
     source: &'a str,
@@ -23,7 +22,9 @@ impl<'a> Scanner<'a> {
     pub fn scan_tokens(&mut self) -> Vec<Token> {
         while !(self.is_at_end()) {
             self.start = self.cur_pos;
-            if self.is_string(None) {
+            if self.is_number_start() {
+                self.consume_number();
+            } else if self.is_string_start(None) {
                 self.consume_string();
             } else {
                 self.consume_punctuation();
@@ -49,6 +50,16 @@ impl<'a> Scanner<'a> {
         self.current_char().unwrap()
     }
 
+    fn peek_offset(&mut self, offset: u32) -> char {
+        if self.is_at_end() {
+            return '\0';
+        }
+        self.source
+            .chars()
+            .nth(self.cur_pos + offset as usize)
+            .unwrap()
+    }
+
     fn current_char(&mut self) -> Option<char> {
         self.source.chars().nth(self.cur_pos)
     }
@@ -68,7 +79,7 @@ impl<'a> Scanner<'a> {
         self.consume().unwrap() == expected
     }
 
-    fn is_string(&mut self, c: Option<char>) -> bool {
+    fn is_string_start(&mut self, c: Option<char>) -> bool {
         let cc = if c.is_some() {
             c.unwrap()
         } else {
@@ -77,6 +88,18 @@ impl<'a> Scanner<'a> {
         cc == '"'
     }
 
+    // fn is_number_start(&mut self, c: Option<char>) -> bool {
+    //     let cc = if c.is_some() {
+    //         c.unwrap()
+    //     } else {
+    //         self.current_char().unwrap()
+    //     };
+    //     cc >= '0' && cc <= '9'
+    // }
+
+    fn is_number_start(&mut self) -> bool {
+        self.current_char().unwrap().is_digit(10)
+    }
     fn consume_string(&mut self) {
         // * skip first \"\
         self.consume();
@@ -91,14 +114,24 @@ impl<'a> Scanner<'a> {
             Report::new(self.line, "", "Unterminated string.");
         }
         self.consume();
-        println!(
-            "source = {:?}, start = {:?}, cur = {:?}",
-            self.source, self.start, self.cur_pos
-        );
         let literal = self.source[self.start + 1..self.cur_pos - 1].to_string();
         self.add_token(TokenKind::String, Some(literal));
     }
 
+    // TODO decimals
+    fn consume_number(&mut self) {
+        let mut number = 0;
+
+        while let Some(n) = self.current_char() {
+            if n.is_digit(10) {
+                self.consume();
+                number = number * 10 + n.to_digit(10).unwrap() as i64;
+            } else {
+                break;
+            }
+        }
+        self.add_token(TokenKind::Number(number), None);
+    }
     fn consume_punctuation(&mut self) {
         let c = self.consume().unwrap();
         let mut kind = TokenKind::Bad;
