@@ -1,4 +1,9 @@
-use super::report::Report;
+use std::collections::HashMap;
+
+use super::{
+    report::Report,
+    token::{generate_identifier_map, TextSpan, Token, TokenKind},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Scanner<'a> {
@@ -7,16 +12,19 @@ pub struct Scanner<'a> {
     start: usize,
     line: u32,
     tokens: Vec<Token>,
+    keywords_map: HashMap<String, TokenKind>,
 }
 
 impl<'a> Scanner<'a> {
     pub fn new(source: &'a str) -> Self {
+        let keywords_map = generate_identifier_map();
         Scanner {
             source,
             tokens: Vec::new(),
             cur_pos: 0,
             start: 0,
             line: 1,
+            keywords_map,
         }
     }
     pub fn scan_tokens(&mut self) -> Vec<Token> {
@@ -26,6 +34,8 @@ impl<'a> Scanner<'a> {
                 self.consume_number();
             } else if self.is_string_start(None) {
                 self.consume_string();
+            } else if self.is_alpha() {
+                self.consume_identifier();
             } else {
                 self.consume_punctuation();
             }
@@ -75,8 +85,34 @@ impl<'a> Scanner<'a> {
     }
 
     fn is_match(&mut self, expected: char) -> bool {
-        println!("{expected}");
-        self.consume().unwrap() == expected
+        let next_c = self.peek_offset(1);
+        if next_c == expected {
+            self.consume();
+            return true;
+        }
+        false
+    }
+
+    fn is_alpha(&mut self) -> bool {
+        let c = self.current_char().unwrap();
+        (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c == '_')
+    }
+
+    fn is_alpha_numeric(&mut self, c: char) -> bool {
+        self.is_alpha() || c.is_digit(10)
+    }
+
+    fn consume_identifier(&mut self) {
+        let c = self.peek();
+        while self.is_alpha_numeric(c) {
+            self.consume();
+        }
+        let literal = self.source[self.start..self.cur_pos].to_string();
+        let cur_type = self.keywords_map.get(&literal);
+        match cur_type {
+            Some(c) => self.add_token(c.clone(), Some(literal)),
+            None => self.add_token(TokenKind::Identifier, Some(literal)),
+        }
     }
 
     fn is_string_start(&mut self, c: Option<char>) -> bool {
@@ -87,15 +123,6 @@ impl<'a> Scanner<'a> {
         };
         cc == '"'
     }
-
-    // fn is_number_start(&mut self, c: Option<char>) -> bool {
-    //     let cc = if c.is_some() {
-    //         c.unwrap()
-    //     } else {
-    //         self.current_char().unwrap()
-    //     };
-    //     cc >= '0' && cc <= '9'
-    // }
 
     fn is_number_start(&mut self) -> bool {
         self.current_char().unwrap().is_digit(10)
@@ -232,76 +259,5 @@ impl<'a> Scanner<'a> {
             TextSpan::new(self.start, self.cur_pos, literal),
         );
         self.tokens.push(token);
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TokenKind {
-    // * single character tokens
-    LeftParen,
-    RightParen,
-    LeftBrace,
-    RightBrace,
-    Comma,
-    Dot,
-    Minus,
-    Plus,
-    Semicolon,
-    Slash,
-    Star,
-    Bad,
-    // * one or two character tokens
-    Bang,
-    BangEqual,
-    Equal,
-    EqualEqual,
-    Greater,
-    GreaterEqual,
-    Less,
-    LessEqual,
-    // *
-    Identifier,
-    String,
-    Number(i64),
-    // *
-    And,
-    Class,
-    Else,
-    False,
-    Function,
-    For,
-    If,
-    Or,
-    Console,
-    Return,
-    Var,
-    Whitespace,
-    Eof,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TextSpan {
-    pub(crate) start: usize,
-    pub(crate) end: usize,
-    pub(crate) literal: String,
-}
-impl TextSpan {
-    pub fn new(start: usize, end: usize, literal: String) -> Self {
-        TextSpan {
-            start,
-            end,
-            literal,
-        }
-    }
-}
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Token {
-    pub(crate) kind: TokenKind,
-    pub(crate) line: u32,
-    pub(crate) span: TextSpan,
-}
-impl Token {
-    pub fn new(kind: TokenKind, line: u32, span: TextSpan) -> Self {
-        Token { kind, line, span }
     }
 }

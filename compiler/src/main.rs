@@ -1,5 +1,5 @@
 // * scanning => parsing => static analysis =>
-// * Intermediate representations =>optimization => code gen => virtual machine
+// * Intermediate representations => optimization => code gen => virtual machine
 // * => runtime
 
 mod ast;
