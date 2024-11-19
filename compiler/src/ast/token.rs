@@ -1,6 +1,7 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum TokenKind {
     // * single character tokens
     LeftParen,
@@ -40,11 +41,14 @@ pub enum TokenKind {
     For,
     Console,
     Var,
+    Null,
+    Undefined,
+    // *
     Whitespace,
     Eof,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct TextSpan {
     pub(crate) start: usize,
     pub(crate) end: usize,
@@ -59,7 +63,7 @@ impl TextSpan {
         }
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Token {
     pub(crate) kind: TokenKind,
     pub(crate) line: u32,
@@ -84,5 +88,7 @@ pub fn generate_identifier_map() -> HashMap<String, TokenKind> {
     identifier_map.insert(String::from("for"), TokenKind::For);
     identifier_map.insert(String::from("console"), TokenKind::Console);
     identifier_map.insert(String::from("var"), TokenKind::Var);
+    identifier_map.insert(String::from("null"), TokenKind::Null);
+    identifier_map.insert(String::from("undefined"), TokenKind::Undefined);
     identifier_map
 }
