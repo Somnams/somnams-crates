@@ -42,10 +42,32 @@ pub trait ASTVisitor {
         self.do_visit_expression(expression);
     }
     fn visit_number_expression(&mut self, n: &ASTNumberExpression) {}
-    fn visit_binary_expression(&mut self, binary: &ASTBinaryExpression) {}
-    fn visit_group_expression(&mut self, group: &ASTGroupExpression) {}
+    fn visit_binary_expression(&mut self, binary: &ASTBinaryExpression) {
+        self.visit_expression(&binary.left);
+        self.visit_expression(&binary.right);
+    }
+    fn visit_group_expression(&mut self, group: &ASTGroupExpression) {
+        self.visit_expression(&group.expression);
+    }
     fn visit_literal_expression() {}
 }
+
+pub struct  ASTPrinter {
+    indent: usize,
+}
+
+const LEVEL_INDENT:usize = 2;
+
+impl ASTPrinter {
+    fn print_with_indent(&mut self, text: &str) {
+        println!("{} {}", " ".repeat(self.indent), text);
+    }
+}
+
+impl  ASTVisitor for ASTPrinter {
+    
+}
+
 pub struct ASTStatement {
     kind: ASTStatementKind,
 }
